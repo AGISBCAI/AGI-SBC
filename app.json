@@ -1,0 +1,22 @@
+{
+  "expo": {
+    "name": "AGI-SBC",
+    "slug": "agi-sbc",
+    "version": "0.1.0",
+    "scheme": "agisbc",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "android": {
+      "package": "com.agisbc.app",
+      "versionCode": 1
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static"
+    },
+    "plugins": [
+      "expo-router"
+    ]
+  }
+}

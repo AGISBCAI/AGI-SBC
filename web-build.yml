@@ -1,0 +1,62 @@
+name: Web Static Build
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "app/**"
+      - "assets/**"
+      - "package.json"
+      - "package-lock.json"
+      - "app.json"
+      - "babel.config.js"
+      - "tsconfig.json"
+      - ".nvmrc"
+      - ".npmrc"
+      - ".github/workflows/web-build.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: web-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          package-manager-cache: false
+
+      - name: Require committed lockfile
+        run: test -f package-lock.json
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Check Expo compatibility
+        run: npx expo install --check
+
+      - name: TypeScript validation
+        run: npx tsc --noEmit
+
+      - name: Export static Web App
+        run: npx expo export --platform web
+
+      - name: Upload static Web build
+        uses: actions/upload-artifact@v7
+        with:
+          name: agi-sbc-web-static
+          path: dist/
+          if-no-files-found: error
+          retention-days: 14

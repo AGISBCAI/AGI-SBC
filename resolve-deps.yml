@@ -1,0 +1,84 @@
+name: Resolve Expo SDK 58 dependencies
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: agi-sbc-dependency-resolver
+  cancel-in-progress: false
+
+jobs:
+  resolve:
+    name: Resolve, verify, and publish deps-lock branch
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out main
+        uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+
+      - name: Verify Node.js minimum
+        run: |
+          node - <<'NODE'
+          const [major, minor] = process.versions.node.split('.').map(Number);
+          if (major < 22 || (major === 22 && minor < 13)) {
+            console.error(`Node.js ${process.versions.node} is below required 22.13.0`);
+            process.exit(1);
+          }
+          console.log(`Node.js ${process.versions.node} meets the minimum.`);
+          NODE
+
+      - name: Refuse to overwrite an existing deps-lock branch
+        run: |
+          if git ls-remote --exit-code --heads origin deps-lock >/dev/null 2>&1; then
+            echo "::error::The deps-lock branch already exists. Refusing to overwrite it."
+            exit 1
+          fi
+
+      - name: Create deps-lock branch from main
+        run: git switch --create deps-lock
+
+      - name: Install pinned Expo SDK foundation
+        run: npm install --save-exact
+
+      - name: Resolve SDK-compatible Expo Router and web dependencies
+        run: |
+          npx expo install expo-router react-dom react-native-web @expo/metro-runtime expo-constants expo-linking expo-status-bar react-native-safe-area-context react-native-screens
+          npx expo install --dev typescript @types/react
+
+      - name: Verify Expo dependency compatibility
+        run: npx expo install --check
+
+      - name: Run Expo Doctor
+        run: npx expo-doctor
+
+      - name: TypeScript validation
+        run: npx tsc --noEmit
+
+      - name: Create dependency lockfile
+        run: npm install --package-lock-only --ignore-scripts
+
+      - name: Commit resolved dependency files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json
+          if git diff --cached --quiet; then
+            echo "::error::No dependency changes were produced; refusing an empty commit."
+            exit 1
+          fi
+          git commit -m "chore: resolve Expo SDK 58 dependencies"
+
+      - name: Push deps-lock branch only
+        run: git push origin HEAD:refs/heads/deps-lock
