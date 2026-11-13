@@ -1,3 +1,4 @@
+
 {
   "expo": {
     "name": "AGI-SBC",
@@ -6,7 +7,6 @@
     "scheme": "agisbc",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "android": {
       "package": "com.agisbc.app",
       "versionCode": 1
